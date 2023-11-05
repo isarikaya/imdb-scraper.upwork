@@ -5,7 +5,7 @@ import User from "./services/user.js"
 (async () => {
   const users = await User.Get()
   const base = "https://www.imdb.com/name/"
-  const browser = await puppeteer.launch({headless: "new"})
+  const browser = await puppeteer.launch({headless: "old"})
   const page = await browser.newPage()
   const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36";
   await page.setUserAgent(ua);
@@ -24,6 +24,7 @@ import User from "./services/user.js"
       data.push(basicUserData)
     }
   }
+
   const getGender = async() => {
     return await page.evaluate(() => {
       return document.querySelector('.sc-7c4234bd-0 ul[role="presentation"] li[role="presentation"]')?.innerText.toLowerCase()
@@ -35,12 +36,11 @@ import User from "./services/user.js"
     const loadMoreButton = await page.$(selector);
     if (loadMoreButton) {
       await loadMoreButton.click()
-      await new Promise(r => setTimeout(r, 250))
+      await new Promise(r => setTimeout(r, 500))
       await loadMore()
     }
   }
   await loadMore()
-
   const seeAllEpisode = async() => {
     const seeAllButton = await page.$("[data-testid='promptable'] .ipc-see-more__text");
     if (seeAllButton) {
@@ -49,7 +49,6 @@ import User from "./services/user.js"
       await seeAllEpisode()
     }
   }
-
   const getEpisodeData = async() => {
     let episodes = []
     episodes = await page.evaluate(() => {
@@ -64,7 +63,6 @@ import User from "./services/user.js"
     })
     return episodes
   }
-  
   const getEpisodes = async() => {
     let result = []
     const tabs = await page.$$('[data-testid="episodic-navigation-container"] div > ul li.ipc-tab')
@@ -90,6 +88,11 @@ import User from "./services/user.js"
     data.title = await page.evaluate(() => {
       return document.querySelector('[data-testid="promptable"] .sc-a78ec4e3-2.ORipO .ipc-title a')?.innerText || ""
     })
+    data.item_code = await page.evaluate(() => {
+      const regex = /tt(\d+)/;
+      const itemCodeEl = document.querySelector('[data-testid="promptable"] .sc-a78ec4e3-2.ORipO .ipc-title a')
+      return itemCodeEl?.getAttribute("href")?.match(regex)[0] || ""
+    })
     if(isEpisodes) {
       await isEpisodes.click()
       await new Promise(r => setTimeout(r, 1500))
@@ -108,7 +111,7 @@ import User from "./services/user.js"
   const openPreviosJob = async() => {
     const gender = await getGender()
     const infoButtons = await page.$$(`[data-testid='Filmography'] #${gender}-previous-projects #accordion-item-${gender}-previous-projects .ipc-accordion__item__content_inner > ul > li > button`);
-    console.log("previous: ",infoButtons.length)
+    console.log("prev: ",infoButtons.length)
     if(infoButtons && infoButtons.length > 0) {
       for(const btn of infoButtons) {
         await btn.click()
@@ -123,11 +126,6 @@ import User from "./services/user.js"
   await openPreviosJob()
   let userData = []
   userData = [...data, ...previousJobs]
-  await fs.promises.writeFile(
-    "data.json",
-    JSON.stringify(userData),
-    (err) => {
-      if (err) console.log("err=> ", err)
-    }
-  )
+  await fs.promises.writeFile("nm0032633.json",JSON.stringify(userData))
+  await browser.close()
 })()
