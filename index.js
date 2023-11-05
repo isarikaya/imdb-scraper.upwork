@@ -5,7 +5,7 @@ import User from "./services/user.js"
 (async () => {
   const users = await User.Get()
   const base = "https://www.imdb.com/name/"
-  const browser = await puppeteer.launch({headless: false})
+  const browser = await puppeteer.launch({headless: "new"})
   const page = await browser.newPage()
   const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36";
   await page.setUserAgent(ua);
@@ -29,17 +29,26 @@ import User from "./services/user.js"
       return document.querySelector('.sc-7c4234bd-0 ul[role="presentation"] li[role="presentation"]')?.innerText.toLowerCase()
     })
   }
-  const loadMore = async(mainEl) => {
+  const loadMore = async() => {
     const gender = await getGender()
-    const selector = `${mainEl} #${gender}-previous-projects .ipc-see-more__text`;
-    const loadMoreButton = await page.$(selector); // Örnek bir sınıf adı
+    const selector = `[data-testid='Filmography'] #${gender}-previous-projects .ipc-see-more__text`;
+    const loadMoreButton = await page.$(selector);
     if (loadMoreButton) {
       await loadMoreButton.click()
       await new Promise(r => setTimeout(r, 250))
-      await loadMore(mainEl)
+      await loadMore()
     }
   }
-  await loadMore("[data-testid='Filmography']")
+  await loadMore()
+
+  const seeAllEpisode = async() => {
+    const seeAllButton = await page.$("[data-testid='promptable'] .ipc-see-more__text");
+    if (seeAllButton) {
+      await seeAllButton.click()
+      await new Promise(r => setTimeout(r, 250))
+      await seeAllEpisode()
+    }
+  }
 
   const getEpisodeData = async() => {
     let episodes = []
@@ -63,13 +72,13 @@ import User from "./services/user.js"
       for(const tab of tabs) {
         await tab.click()
         await new Promise(r => setTimeout(r, 1500))
-        await loadMore("[data-testid='promptable']")
+        await seeAllEpisode()
         await new Promise(r => setTimeout(r, 1000))
         const episodes = await getEpisodeData()
         result = [...result, ...episodes]
       }
     } else {
-      await loadMore("[data-testid='promptable']")
+      await seeAllEpisode()
       await new Promise(r => setTimeout(r, 1000))
       result = await getEpisodeData()
     }
@@ -99,6 +108,7 @@ import User from "./services/user.js"
   const openPreviosJob = async() => {
     const gender = await getGender()
     const infoButtons = await page.$$(`[data-testid='Filmography'] #${gender}-previous-projects #accordion-item-${gender}-previous-projects .ipc-accordion__item__content_inner > ul > li > button`);
+    console.log("previous: ",infoButtons.length)
     if(infoButtons && infoButtons.length > 0) {
       for(const btn of infoButtons) {
         await btn.click()
