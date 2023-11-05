@@ -73,7 +73,6 @@ import User from "./services/user.js"
       await new Promise(r => setTimeout(r, 1000))
       result = await getEpisodeData()
     }
-    console.log(result)
     return result
   }
   const getPopupData = async() => {
@@ -99,8 +98,7 @@ import User from "./services/user.js"
   let previousJobs = []
   const openPreviosJob = async() => {
     const gender = await getGender()
-    const infoButtons = await page.$$(`[data-testid='Filmography'] #${gender}-previous-projects #accordion-item-${gender}-previous-projects .ipc-accordion__item__content_inner > ul > li > button`)
-    console.log('infoButtons.length', infoButtons.length)
+    const infoButtons = await page.$$(`[data-testid='Filmography'] #${gender}-previous-projects #accordion-item-${gender}-previous-projects .ipc-accordion__item__content_inner > ul > li > button`);
     if(infoButtons && infoButtons.length > 0) {
       for(const btn of infoButtons) {
         await btn.click()
