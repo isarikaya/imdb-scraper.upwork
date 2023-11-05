@@ -30,14 +30,20 @@ import User from "./services/user.js"
       return document.querySelector('.sc-7c4234bd-0 ul[role="presentation"] li[role="presentation"]')?.innerText.toLowerCase()
     })
   }
-  const loadMore = async() => {
+  const loadMore = async () => {
     const gender = await getGender()
-    const selector = `[data-testid='Filmography'] #${gender}-previous-projects .ipc-see-more__text`;
-    const loadMoreButton = await page.$(selector);
-    if (loadMoreButton) {
-      await loadMoreButton.click()
-      await new Promise(r => setTimeout(r, 500))
-      await loadMore()
+    const selector = `[data-testid='Filmography'] #${gender}-previous-projects button[data-testid='nm-flmg-paginated-all-${gender}']`
+    const loadMoreButtonExists = await page.evaluate(selector => {
+      const loadMoreButton = document.querySelector(selector)
+      if (loadMoreButton) {
+          loadMoreButton.click()
+          return true
+      }
+      return false
+    }, selector)
+    if (loadMoreButtonExists) {
+        await new Promise(r => setTimeout(r, 500))
+        await loadMore()
     }
   }
   await loadMore()
