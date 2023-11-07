@@ -7,7 +7,14 @@ const User = {
     if(history) {
       const history = JSON.parse(await fs.promises.readFile("history.json", "utf8"))
       const nonCompleteds = history.filter(item => !item.completed)
-      return nonCompleteds
+      console.log('nonCompleteds', nonCompleteds.length)
+      if(nonCompleteds.length < 1) {
+        await fs.promises.unlink("history.json")
+        return User.Get()
+      } else {
+        return nonCompleteds
+      }
+      
     } else {
       const rows = data.split("\n")
       const regex = /^nm\d+/

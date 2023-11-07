@@ -2,7 +2,17 @@ import fs from "fs"
 import puppeteer from "puppeteer"
 import User from "./services/user.js"
 
+const createDir = async () => {
+  const outputDir = fs.existsSync("output")
+  try {
+    if(!outputDir) {
+      await fs.promises.mkdir("./output")
+    }
+  } catch (err) {}
+}
+
 (async () => {
+  await createDir()
   const users = await User.Get()
   const base = "https://www.imdb.com/name/"
   const browser = await puppeteer.launch({headless: "old", args: ['--disable-features=site-per-process']}) //headless old
@@ -130,7 +140,7 @@ import User from "./services/user.js"
       data.push(basicUserData)
       await loadMore()
       const prevs = await previousJobs()
-      await fs.promises.writeFile(user.ID + ".json",JSON.stringify([...data, ...prevs]))
+      await fs.promises.writeFile("./output/" + user.ID + ".json",JSON.stringify([...data, ...prevs]))
       await User.Update(user.ID)
     }
   }
