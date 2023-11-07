@@ -5,7 +5,7 @@ import User from "./services/user.js"
 (async () => {
   const users = await User.Get()
   const base = "https://www.imdb.com/name/"
-  const browser = await puppeteer.launch({headless: false, args: ['--disable-features=site-per-process']}) //headless old
+  const browser = await puppeteer.launch({headless: "old", args: ['--disable-features=site-per-process']}) //headless old
   const page = await browser.newPage()
   const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
   await page.setUserAgent(ua)
@@ -92,12 +92,13 @@ import User from "./services/user.js"
         return document.querySelector('[data-testid="promptable"] .sc-a78ec4e3-2.ORipO > ul > li')?.innerText || ""
       })
       data.character = await page.evaluate(() => {
-        return document.querySelector('[data-testid="promptable"] .ipc-expandableSection > span > ul > li')?.innerText || ""
+        return document.querySelector('[data-testid="promptable"] .ipc-expandableSection > span > ul')?.innerText || ""
       })
     }
     return [data]
   }
-  const openPreviosJob = async() => {
+  const previousJobs = async() => {
+    let previousJobs = []
     const gender = await getGender()
     const infoButtons = await page.$$(`[data-testid='Filmography'] #${gender}-previous-projects #accordion-item-${gender}-previous-projects .ipc-accordion__item__content_inner > ul > li > button`)
     if(infoButtons && infoButtons.length > 0) {
@@ -110,14 +111,14 @@ import User from "./services/user.js"
         await new Promise(r => setTimeout(r, 500))
       }
     }
+    return previousJobs
   }
 
-  let data = []
-  let previousJobs = []
   for await(const user of users) {
-    if(user && user.userId) {
-      console.log("scraping =>", user.userId)
-      await page.goto(base + user.userId)
+    let data = []
+    if(user && user.ID) {
+      console.log("scraping =>", user.ID)
+      await page.goto(base + user.ID)
       const basicUserData = await page.evaluate(() => {
         const fullName = document.querySelector('[data-testid="hero__pageTitle"]')?.innerText ?? ""
         const born = document.querySelectorAll('[data-testid="birth-and-death-birthdate"] span')[1]?.innerText || ""
@@ -125,13 +126,12 @@ import User from "./services/user.js"
         const gender = document.querySelector('.sc-7c4234bd-0 ul[role="presentation"] li[role="presentation"]')?.innerText === "Actor" ? "M" : "F" || ""
         return {fullName, bornYear, gender}
       })
-      basicUserData.userCode = user.userId
+      basicUserData.userCode = user.ID
       data.push(basicUserData)
       await loadMore()
-      await openPreviosJob()
-      let userData = []
-      userData = [...data, ...previousJobs]
-      await fs.promises.writeFile("nm0032633.json",JSON.stringify(userData))
+      const prevs = await previousJobs()
+      await fs.promises.writeFile(user.ID + ".json",JSON.stringify([...data, ...prevs]))
+      await User.Update(user.ID)
     }
   }
   await browser.close()
