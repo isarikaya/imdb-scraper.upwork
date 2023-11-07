@@ -5,25 +5,10 @@ import User from "./services/user.js"
 (async () => {
   const users = await User.Get()
   const base = "https://www.imdb.com/name/"
-  const browser = await puppeteer.launch({headless: "old"})
+  const browser = await puppeteer.launch({headless: false, args: ['--disable-features=site-per-process']}) //headless old
   const page = await browser.newPage()
-  const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36";
-  await page.setUserAgent(ua);
-  let data = []
-  for await(const user of users) {
-    if(user && user.userId) {
-      await page.goto(base + user.userId)
-      const basicUserData = await page.evaluate(() => {
-        const fullName = document.querySelector('[data-testid="hero__pageTitle"]')?.innerText ?? ""
-        const born = document.querySelectorAll('[data-testid="birth-and-death-birthdate"] span')[1]?.innerText || ""
-        const bornYear = +born.split(",")[1]?.trim() || "-"
-        const gender = document.querySelector('.sc-7c4234bd-0 ul[role="presentation"] li[role="presentation"]')?.innerText === "Actor" ? "M" : "F" || ""
-        return {fullName, bornYear, gender}
-      })
-      basicUserData.userCode = user.userId
-      data.push(basicUserData)
-    }
-  }
+  const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+  await page.setUserAgent(ua)
 
   const getGender = async() => {
     return await page.evaluate(() => {
@@ -46,9 +31,8 @@ import User from "./services/user.js"
         await loadMore()
     }
   }
-  await loadMore()
   const seeAllEpisode = async() => {
-    const seeAllButton = await page.$("[data-testid='promptable'] .ipc-see-more__text");
+    const seeAllButton = await page.$("[data-testid='promptable'] .ipc-see-more__text")
     if (seeAllButton) {
       await seeAllButton.click()
       await new Promise(r => setTimeout(r, 250))
@@ -111,13 +95,11 @@ import User from "./services/user.js"
         return document.querySelector('[data-testid="promptable"] .ipc-expandableSection > span > ul > li')?.innerText || ""
       })
     }
-    return [data];
+    return [data]
   }
-  let previousJobs = []
   const openPreviosJob = async() => {
     const gender = await getGender()
-    const infoButtons = await page.$$(`[data-testid='Filmography'] #${gender}-previous-projects #accordion-item-${gender}-previous-projects .ipc-accordion__item__content_inner > ul > li > button`);
-    console.log("prev: ",infoButtons.length)
+    const infoButtons = await page.$$(`[data-testid='Filmography'] #${gender}-previous-projects #accordion-item-${gender}-previous-projects .ipc-accordion__item__content_inner > ul > li > button`)
     if(infoButtons && infoButtons.length > 0) {
       for(const btn of infoButtons) {
         await btn.click()
@@ -129,9 +111,28 @@ import User from "./services/user.js"
       }
     }
   }
-  await openPreviosJob()
-  let userData = []
-  userData = [...data, ...previousJobs]
-  await fs.promises.writeFile("nm0032633.json",JSON.stringify(userData))
+
+  let data = []
+  let previousJobs = []
+  for await(const user of users) {
+    if(user && user.userId) {
+      console.log("scraping =>", user.userId)
+      await page.goto(base + user.userId)
+      const basicUserData = await page.evaluate(() => {
+        const fullName = document.querySelector('[data-testid="hero__pageTitle"]')?.innerText ?? ""
+        const born = document.querySelectorAll('[data-testid="birth-and-death-birthdate"] span')[1]?.innerText || ""
+        const bornYear = +born.split(",")[1]?.trim() || "-"
+        const gender = document.querySelector('.sc-7c4234bd-0 ul[role="presentation"] li[role="presentation"]')?.innerText === "Actor" ? "M" : "F" || ""
+        return {fullName, bornYear, gender}
+      })
+      basicUserData.userCode = user.userId
+      data.push(basicUserData)
+      await loadMore()
+      await openPreviosJob()
+      let userData = []
+      userData = [...data, ...previousJobs]
+      await fs.promises.writeFile("nm0032633.json",JSON.stringify(userData))
+    }
+  }
   await browser.close()
 })()

@@ -8,11 +8,12 @@ const User = {
     let users = rows.map((row) => {
       const userId = row.match(regex)[0]
       if (userId) {
-        const done = false
-        return { userId, done }
+        const completed = false
+        return { userId, completed }
       }
     })
-    return users
+    await fs.promises.writeFile("history.json", JSON.stringify(users))
+    return JSON.parse(await fs.promises.readFile("history.json", "utf8"))
   }
 }
 
