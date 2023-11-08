@@ -11,6 +11,17 @@ const createDir = async () => {
   } catch (err) {}
 }
 
+const isDone = async () => {
+  const history = fs.existsSync("history.json", "utf8")
+  if(history) {
+    const history = JSON.parse(await fs.promises.readFile("history.json", "utf8"))
+    const nonCompleteds = history.filter(item => !item.completed)
+    if(nonCompleteds.length < 1) {
+      await fs.promises.unlink("history.json")
+    }
+  }
+}
+
 (async () => {
   await createDir()
   const users = await User.Get()
@@ -142,6 +153,7 @@ const createDir = async () => {
       const prevs = await previousJobs()
       await fs.promises.writeFile("./output/" + user.ID + ".json",JSON.stringify([...data, ...prevs]))
       await User.Update(user.ID)
+      await isDone()
     }
   }
   await browser.close()
