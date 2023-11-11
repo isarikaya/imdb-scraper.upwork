@@ -1,7 +1,5 @@
 import fs from "fs"
 import puppeteer from "puppeteer"
-import { Parser, transforms } from 'json2csv';
-const { unwind } = transforms;
 import User from "./services/user.js"
 
 const createDir = async () => {

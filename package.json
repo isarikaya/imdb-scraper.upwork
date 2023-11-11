@@ -12,8 +12,5 @@
   "license": "ISC",
   "devDependencies": {
     "puppeteer": "^21.4.1"
-  },
-  "dependencies": {
-    "json2csv": "^6.0.0-alpha.2"
   }
 }
