@@ -24,6 +24,28 @@ const isDone = async () => {
   }
 }
 
+function convertJSONToTSV(jsonArr, tsvFilePath) {
+  let tsv = '';
+  const baseKeys = ['fullName', 'bornYear', 'gender', 'userCode', 'title', 'item_code', 'title_year', 'character'];
+  const nestedKeys = ['season_episode', 'title_year', 'character'];
+  const headers = baseKeys.concat(nestedKeys).join('\t');
+  tsv = headers + '\n' + tsv;
+  jsonArr.forEach((item) => {
+    if (item.lastResult) {
+      item.lastResult.forEach((nestedItem) => {
+        tsv += baseKeys.map(key => item[key] || 'NA').join('\t') + '\t' + 
+                nestedKeys.map(key => nestedItem[key] || 'NA').join('\t') + '\n';
+      });
+    } else {
+      tsv += baseKeys.map(key => item[key] || 'NA').join('\t') + '\n';
+    }
+  });
+  fs.writeFile(tsvFilePath, tsv, (err) => {
+    if (err) throw err;
+    console.log(`TSV file has been saved as ${tsvFilePath}`);
+  });
+}
+
 (async () => {
   await createDir()
   const users = await User.Get()
@@ -65,11 +87,12 @@ const isDone = async () => {
   const getEpisodeData = async() => {
     let episodes = []
     episodes = await page.evaluate(() => {
+      const regex = /\(\d{4}\)/gm
       const items = Array.from(document.querySelectorAll('[data-testid="promptable"] .ipc-promptable-base__content a.episodic-credits-bottomsheet__menu-item'))
       return items.map(item => {
         const p = item.querySelector("p.sc-d77789e-1")
         const season_episode = p.querySelector("ul > li:first-child")?.innerText || ""
-        const title_year = p.querySelector("ul > li:last-child")?.innerText
+        const title_year = p.querySelector("ul > li:last-child")?.innerText.match(regex)[0] || ""
         const character = item.querySelector(".sc-d77789e-3.wrap-content")?.innerText || ""
         return { season_episode, title_year, character}
       })
@@ -150,25 +173,20 @@ const isDone = async () => {
         return {fullName, bornYear, gender}
       })
       basicUserData.userCode = user.ID
+      console.log(basicUserData)
       data.push(basicUserData)
       await loadMore()
-      const prevs = await previousJobs()
-      const fields = [
-        'fullName', 'bornYear', 'gender', 'userCode',
-        'title', 'item_code', 'title_year', 'character',
-        'lastResult.season_episode', 'lastResult.title_year', 'lastResult.character'
-      ];
-      const json2csvTransforms = [unwind({ paths: ['lastResult'], blankOut: true })];
-      const opts = {
-        fields,
-        delimiter: '\t',
-        transforms: json2csvTransforms
-      };
-      const mergedData = [...data, ...prevs]
-      const parser = new Parser(opts);
-
-      const tsv = parser.parse(mergedData);
-      await fs.promises.writeFile("./output/" + user.ID + ".tsv", tsv)
+      let prevs = await previousJobs()
+      const merged = prevs.map(item => {
+        const newItem = { ...basicUserData, ...item }
+        if (newItem.lastResult) {
+          newItem.lastResult = newItem.lastResult.map(lastResultItem => {
+            return newItem.lastResult = { ...basicUserData, ...lastResultItem };
+          });
+        }
+        return newItem
+      });
+      convertJSONToTSV(merged, "./output/" + user.ID + ".tsv")
       await User.Update(user.ID)
       await isDone()
     }
