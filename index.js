@@ -1,5 +1,7 @@
 import fs from "fs"
 import puppeteer from "puppeteer"
+import { Parser, transforms } from 'json2csv';
+const { unwind } = transforms;
 import User from "./services/user.js"
 
 const createDir = async () => {
@@ -26,10 +28,10 @@ const isDone = async () => {
   await createDir()
   const users = await User.Get()
   const base = "https://www.imdb.com/name/"
-  const browser = await puppeteer.launch({headless: "old", args: ['--disable-features=site-per-process']}) //headless old
+  const browser = await puppeteer.launch({headless: "new", args: ['--disable-features=site-per-process']}) //headless old
   const page = await browser.newPage()
-  const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-  await page.setUserAgent(ua)
+  const ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36";
+  await page.setUserAgent(ua);
 
   const getGender = async() => {
     return await page.evaluate(() => {
@@ -65,10 +67,10 @@ const isDone = async () => {
     episodes = await page.evaluate(() => {
       const items = Array.from(document.querySelectorAll('[data-testid="promptable"] .ipc-promptable-base__content a.episodic-credits-bottomsheet__menu-item'))
       return items.map(item => {
-        const p = item.querySelector("p.sc-d77789e-1.cpKfbh")
+        const p = item.querySelector("p.sc-d77789e-1")
         const season_episode = p.querySelector("ul > li:first-child")?.innerText || ""
         const title_year = p.querySelector("ul > li:last-child")?.innerText
-        const character = item.querySelector(".sc-d77789e-3.RsVgK.wrap-content")?.innerText || ""
+        const character = item.querySelector(".sc-d77789e-3.wrap-content")?.innerText || ""
         return { season_episode, title_year, character}
       })
     })
@@ -95,13 +97,13 @@ const isDone = async () => {
   }
   const getPopupData = async() => {
     const data = {}
-    const isEpisodes = await page.$('[data-testid="promptable"] .sc-688347b3-0.jwfyaK > a.character-summary-episodic-credit > ul')
+    const isEpisodes = await page.$('[data-testid="promptable"] .sc-688347b3-0 > a.character-summary-episodic-credit > ul')
     data.title = await page.evaluate(() => {
-      return document.querySelector('[data-testid="promptable"] .sc-a78ec4e3-2.ORipO .ipc-title a')?.innerText || ""
+      return document.querySelector('[data-testid="promptable"] .sc-a78ec4e3-2 .ipc-title a')?.innerText || ""
     })
     data.item_code = await page.evaluate(() => {
       const regex = /tt(\d+)/;
-      const itemCodeEl = document.querySelector('[data-testid="promptable"] .sc-a78ec4e3-2.ORipO .ipc-title a')
+      const itemCodeEl = document.querySelector('[data-testid="promptable"] .sc-a78ec4e3-2 .ipc-title a')
       return itemCodeEl?.getAttribute("href")?.match(regex)[0] || ""
     })
     if(isEpisodes) {
@@ -110,7 +112,7 @@ const isDone = async () => {
       data.lastResult = await getEpisodes()
     } else {
       data.title_year = await page.evaluate(() => {
-        return document.querySelector('[data-testid="promptable"] .sc-a78ec4e3-2.ORipO > ul > li')?.innerText || ""
+        return document.querySelector('[data-testid="promptable"] .sc-a78ec4e3-2 > ul > li')?.innerText || ""
       })
       data.character = await page.evaluate(() => {
         return document.querySelector('[data-testid="promptable"] .ipc-expandableSection > span > ul')?.innerText || ""
@@ -135,7 +137,7 @@ const isDone = async () => {
     return previousJobs
   }
 
-  for await(const user of users) {
+  for await (const user of users) {
     let data = []
     if(user && user.ID) {
       console.log("scraping =>", user.ID)
@@ -151,7 +153,22 @@ const isDone = async () => {
       data.push(basicUserData)
       await loadMore()
       const prevs = await previousJobs()
-      await fs.promises.writeFile("./output/" + user.ID + ".json",JSON.stringify([...data, ...prevs]))
+      const fields = [
+        'fullName', 'bornYear', 'gender', 'userCode',
+        'title', 'item_code', 'title_year', 'character',
+        'lastResult.season_episode', 'lastResult.title_year', 'lastResult.character'
+      ];
+      const json2csvTransforms = [unwind({ paths: ['lastResult'], blankOut: true })];
+      const opts = {
+        fields,
+        delimiter: '\t',
+        transforms: json2csvTransforms
+      };
+      const mergedData = [...data, ...prevs]
+      const parser = new Parser(opts);
+
+      const tsv = parser.parse(mergedData);
+      await fs.promises.writeFile("./output/" + user.ID + ".tsv", tsv)
       await User.Update(user.ID)
       await isDone()
     }
