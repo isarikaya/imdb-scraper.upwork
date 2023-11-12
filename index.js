@@ -24,19 +24,38 @@ const isDone = async () => {
 
 function convertJSONToTSV(jsonArr, tsvFilePath) {
   let tsv = '';
-  const baseKeys = ['fullName', 'bornYear', 'gender', 'userCode', 'title', 'item_code', 'title_year', 'character'];
-  const nestedKeys = ['season_episode', 'title_year2', 'character2'];
-  const headers = baseKeys.concat(nestedKeys).join('\t');
-  tsv = headers + '\n' + tsv;
+  const headers = ['fullName', 'userCode', 'bornYear', 'gender', 'title_year', 'title', 'item_code', 'season_episode', 'character'];
+  tsv += headers.join('\t') + '\n';
+
   jsonArr.forEach((item) => {
-    if (item.lastResult) {
+    if (item.lastResult && item.lastResult.length > 0) {
       item.lastResult.forEach((nestedItem) => {
-        tsv += baseKeys.map(key => item[key] || 'NA').join('\t') + '\t' + 
-                nestedKeys.map(key => nestedItem[key] || 'NA').join('\t') + '\n';
+        let row = headers.map((header) => {
+          if (header === 'title_year') {
+            return nestedItem.title_year || 'NA';
+          } else if (header === 'title') {
+            return item.title || 'NA';
+          } else if (header === 'character') {
+            return nestedItem.character || 'NA';
+          } else if (header === 'season_episode') {
+            return nestedItem.season_episode || 'NA';
+          } else {
+            return item[header] || 'NA';
+          }
+        }).join('\t');
+        tsv += row + '\n';
       });
     } else {
-      tsv += baseKeys.map(key => item[key] || 'NA').join('\t') + '\t' +
-              nestedKeys.map(key => 'NA').join('\t') + '\n';
+      let row = headers.map((header) => {
+        if (header === 'title_year') {
+          return item.title_year || 'NA';
+        } else if (header === 'title') {
+          return item.title || 'NA';
+        } else {
+          return item[header] || 'NA';
+        }
+      }).join('\t');
+      tsv += row + '\n';
     }
   });
   fs.writeFile(tsvFilePath, tsv, (err) => {
@@ -92,9 +111,9 @@ function convertJSONToTSV(jsonArr, tsvFilePath) {
         const p = item.querySelector("p.sc-d77789e-1")
         const season_episode = p.querySelector("ul > li:first-child")?.innerText || ""
         const match = p.querySelector("ul > li:last-child")?.innerText.match(regex)
-        const title_year2 = match ? match[0] : "";
-        const character2 = item.querySelector(".sc-d77789e-3.wrap-content")?.innerText || ""
-        return { season_episode, title_year2, character2}
+        const title_year = match ? match[0] : "";
+        const character = item.querySelector(".sc-d77789e-3.wrap-content")?.innerText || ""
+        return { season_episode, title_year, character}
       })
     })
     return episodes
@@ -127,7 +146,8 @@ function convertJSONToTSV(jsonArr, tsvFilePath) {
     data.item_code = await page.evaluate(() => {
       const regex = /tt(\d+)/;
       const itemCodeEl = document.querySelector('[data-testid="promptable"] .sc-a78ec4e3-2 .ipc-title a')
-      return itemCodeEl?.getAttribute("href")?.match(regex)[0] || ""
+      const match = itemCodeEl?.getAttribute("href")?.match(regex)
+      return match ? match[0] : ""
     })
     if(isEpisodes) {
       await isEpisodes.click()
