@@ -50,7 +50,7 @@ function convertJSONToTSV(jsonArr, tsvFilePath) {
   const base = "https://www.imdb.com/name/"
   const browser = await puppeteer.launch({headless: "new", args: ['--disable-features=site-per-process']}) //headless old
   const page = await browser.newPage()
-  const ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36";
+  const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36";
   await page.setUserAgent(ua);
 
   const getGender = async() => {
