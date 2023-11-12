@@ -126,13 +126,13 @@ function convertJSONToTSV(jsonArr, tsvFilePath) {
         await tab.click()
         await new Promise(r => setTimeout(r, 1500))
         await seeAllEpisode()
-        await new Promise(r => setTimeout(r, 1000))
+        await new Promise(r => setTimeout(r, 1500))
         const episodes = await getEpisodeData()
         result = [...result, ...episodes]
       }
     } else {
       await seeAllEpisode()
-      await new Promise(r => setTimeout(r, 1000))
+      await new Promise(r => setTimeout(r, 1500))
       result = await getEpisodeData()
     }
     return result
