@@ -90,7 +90,8 @@ function convertJSONToTSV(jsonArr, tsvFilePath) {
       return items.map(item => {
         const p = item.querySelector("p.sc-d77789e-1")
         const season_episode = p.querySelector("ul > li:first-child")?.innerText || ""
-        const title_year = p.querySelector("ul > li:last-child")?.innerText.match(regex)[0] || ""
+        const match = p.querySelector("ul > li:last-child")?.innerText.match(regex)
+        const title_year = match ? match[0] : "";
         const character = item.querySelector(".sc-d77789e-3.wrap-content")?.innerText || ""
         return { season_episode, title_year, character}
       })
@@ -171,7 +172,6 @@ function convertJSONToTSV(jsonArr, tsvFilePath) {
         return {fullName, bornYear, gender}
       })
       basicUserData.userCode = user.ID
-      console.log(basicUserData)
       data.push(basicUserData)
       await loadMore()
       let prevs = await previousJobs()
