@@ -25,7 +25,7 @@ const isDone = async () => {
 function convertJSONToTSV(jsonArr, tsvFilePath) {
   let tsv = '';
   const baseKeys = ['fullName', 'bornYear', 'gender', 'userCode', 'title', 'item_code', 'title_year', 'character'];
-  const nestedKeys = ['season_episode', 'title_year', 'character'];
+  const nestedKeys = ['season_episode', 'title_year2', 'character2'];
   const headers = baseKeys.concat(nestedKeys).join('\t');
   tsv = headers + '\n' + tsv;
   jsonArr.forEach((item) => {
@@ -35,7 +35,8 @@ function convertJSONToTSV(jsonArr, tsvFilePath) {
                 nestedKeys.map(key => nestedItem[key] || 'NA').join('\t') + '\n';
       });
     } else {
-      tsv += baseKeys.map(key => item[key] || 'NA').join('\t') + '\n';
+      tsv += baseKeys.map(key => item[key] || 'NA').join('\t') + '\t' +
+              nestedKeys.map(key => 'NA').join('\t') + '\n';
     }
   });
   fs.writeFile(tsvFilePath, tsv, (err) => {
@@ -91,9 +92,9 @@ function convertJSONToTSV(jsonArr, tsvFilePath) {
         const p = item.querySelector("p.sc-d77789e-1")
         const season_episode = p.querySelector("ul > li:first-child")?.innerText || ""
         const match = p.querySelector("ul > li:last-child")?.innerText.match(regex)
-        const title_year = match ? match[0] : "";
-        const character = item.querySelector(".sc-d77789e-3.wrap-content")?.innerText || ""
-        return { season_episode, title_year, character}
+        const title_year2 = match ? match[0] : "";
+        const character2 = item.querySelector(".sc-d77789e-3.wrap-content")?.innerText || ""
+        return { season_episode, title_year2, character2}
       })
     })
     return episodes
