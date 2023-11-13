@@ -1,7 +1,8 @@
 import fs from "fs"
-import puppeteer from "puppeteer"
+import puppeteer from "puppeteer-extra"
 import User from "./services/user.js"
-
+import StealthPlugin from "puppeteer-extra-plugin-stealth"
+puppeteer.use(StealthPlugin())
 const createDir = async () => {
   const outputDir = fs.existsSync("output")
   try {
