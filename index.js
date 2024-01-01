@@ -119,11 +119,11 @@ const scrape = async(user, browser) => {
         const regex = /\(\d{4}\)/gm
         const items = Array.from(document.querySelectorAll('[data-testid="promptable"] .ipc-promptable-base__content a.episodic-credits-bottomsheet__menu-item'))
         return items.map(item => {
-          const p = item.querySelector("p.sc-d77789e-1")
+          const p = item.querySelector("p.sc-9cdb5bcd-1") 
           const season_episode = p.querySelector("ul > li:first-child")?.innerText || ""
           const match = p.querySelector("ul > li:last-child")?.innerText.match(regex)
           const title_year = match ? match[0] : "";
-          const character = item.querySelector(".sc-d77789e-3.wrap-content")?.innerText || ""
+          const character = item.querySelector(".sc-9cdb5bcd-3.wrap-content")?.innerText || ""
           return { season_episode, title_year, character}
         })
       })
